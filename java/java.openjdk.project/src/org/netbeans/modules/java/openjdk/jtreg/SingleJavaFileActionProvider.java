@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.java.api.common;
+package org.netbeans.modules.java.openjdk.jtreg;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,39 +29,36 @@ import org.netbeans.api.project.Project;
 import org.netbeans.spi.project.ActionProvider;
 import org.openide.filesystems.FileObject;
 import org.openide.loaders.DataObject;
+import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 import org.openide.util.Utilities;
 import org.openide.util.lookup.ServiceProvider;
+import org.openide.windows.IOProvider;
+import org.openide.windows.InputOutput;
 
 /**
- * This class provides support to run a single Java file without a parent
- * project (JEP-330).
  *
  * @author Sarvesh Kesharwani
  */
 @ServiceProvider(service = ActionProvider.class)
-public class SingleJavaSourceRunActionProvider implements ActionProvider {
+public class SingleJavaFileActionProvider implements ActionProvider {
     
     private static final String FILE_ARGUMENTS = "single_file_run_arguments"; //NOI18N
     private static final String FILE_VM_OPTIONS = "single_file_vm_options"; //NOI18N
+    private FileObject fileObject;
 
     @Override
     public String[] getSupportedActions() {
-        return new String[]{ActionProvider.COMMAND_RUN_SINGLE};
+        return new String[]{ActionProvider.COMMAND_RUN_SINGLE , ActionProvider.COMMAND_DEBUG_SINGLE};
     }
 
     @Override
     public void invokeAction(String command, Lookup context) throws IllegalArgumentException {
-        FileObject fileObject = getJavaFileWithoutProjectFromLookup(context);
-        if (fileObject == null) 
-            return;
-        ExecutionDescriptor descriptor = new ExecutionDescriptor().controllable(true).frontWindow(true).
-                    preExecution(null).postExecution(null);
-        RunProcess process = invokeActionHelper(command, fileObject);
-        ExecutionService exeService = ExecutionService.newService(
-                    process,
-                    descriptor, "Running Single Java File");
-        Future<Integer> exitCode = exeService.run();
+        if (command.equals(ActionProvider.COMMAND_RUN_SINGLE)) {
+            invokeRun(command, context);
+        } else if (command.equals(ActionProvider.COMMAND_DEBUG_SINGLE)) {
+            invokeDebug(context);
+        }
     }
 
     @Override
@@ -74,6 +71,45 @@ public class SingleJavaSourceRunActionProvider implements ActionProvider {
         int version = Integer.parseInt(javaVersion);
         FileObject fileObject = getJavaFileWithoutProjectFromLookup(context);
         return version >= 11 && fileObject != null;
+    }
+    
+    private void invokeRun (String command, Lookup context) {
+        FileObject fileObject = getJavaFileWithoutProjectFromLookup(context);
+        if (fileObject == null) 
+            return;
+        ExecutionDescriptor descriptor = new ExecutionDescriptor().controllable(true).frontWindow(true).
+                    preExecution(null).postExecution(null);
+        RunProcess process = invokeActionHelper(command, fileObject);
+        ExecutionService exeService = ExecutionService.newService(
+                    process,
+                    descriptor, "Running Single Java File");
+        Future<Integer> exitCode = exeService.run();
+    }
+    
+    private void invokeDebug(Lookup context) {
+        InputOutput io = IOProvider.getDefault().getIO("Opening Debugger Port", false);
+        JPDAStart start = new JPDAStart(io, "debug.single");
+        try {
+            FileObject fileObject = getJavaFileWithoutProjectFromLookup(context);
+            File classFile = new File(fileObject.getParent().getPath() + File.separator + fileObject.getName() + ".class");
+            if (classFile.exists()) {
+                classFile.delete();
+            }
+            File javacPath = new File(new File(new File(System.getProperty("java.home")), "bin"), "javac");
+            Runtime.getRuntime().exec("\"" + javacPath.getAbsolutePath() + "\" " + "\"" + fileObject.getPath() + "\"");
+            long startTime = System.currentTimeMillis();
+            long fintime = startTime + 6000;
+            while (!classFile.exists() && fintime > System.currentTimeMillis()) {
+                //
+            }
+            if (classFile.exists()) {
+                this.fileObject = fileObject;
+                start.execute(fileObject);
+                //start.execute(new JDKProject(fileObject.getParent(), null, null));
+            }
+        } catch (Throwable ex) {
+            Exceptions.printStackTrace(ex);
+        }
     }
     
     public RunProcess invokeActionHelper (String command, FileObject fileObject) {
@@ -103,5 +139,5 @@ public class SingleJavaSourceRunActionProvider implements ActionProvider {
         }
         return null;
     }
-        
+    
 }

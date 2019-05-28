@@ -50,12 +50,12 @@ import org.netbeans.modules.debugger.jpda.util.Executor;
 import org.netbeans.spi.debugger.ActionsProvider;
 import org.netbeans.spi.debugger.ActionsProviderListener;
 import org.netbeans.api.extexecution.ExecutionService;
-import org.netbeans.modules.java.openjdk.jtreg.SingleJavaSourceDebugActionProvider;
 import org.netbeans.spi.project.ActionProvider;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Cancellable;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
+import org.netbeans.modules.java.openjdk.jtreg.SingleJavaFileActionProvider;
 
 /**
 *
@@ -177,8 +177,8 @@ public class StartActionProvider extends ActionsProvider implements Cancellable 
                 break;
             }
         }
-        if (dap instanceof SingleJavaSourceDebugActionProvider) {
-            SingleJavaSourceDebugActionProvider debugActionProvider = (SingleJavaSourceDebugActionProvider) dap;
+        if (dap instanceof SingleJavaFileActionProvider) {
+            SingleJavaFileActionProvider debugActionProvider = (SingleJavaFileActionProvider) dap;
             FileObject debugFile = debugActionProvider.getFileObject();
             File javaPathFile = new File(new File(new File(System.getProperty("java.home")), "bin"), "java");
             String javaPath = "\"" + javaPathFile.getAbsolutePath() + "\"";

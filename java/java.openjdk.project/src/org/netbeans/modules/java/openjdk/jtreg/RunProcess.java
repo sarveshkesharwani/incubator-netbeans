@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.java.api.common;
+package org.netbeans.modules.java.openjdk.jtreg;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  *
- * @author Sarvesh Kesharwani
+ * @author sakeshar
  */
-class RunProcess implements Callable<Process> {
+public class RunProcess implements Callable<Process> {
     
     private static final Logger LOG = Logger.getLogger(RunProcess.class.getName());
 
